@@ -1,4 +1,4 @@
-# Formula 1 Data Engineering Project
+# Formula 1 Project
 
 This project extracts Formula 1 racing data using APIs and loads it into a PostgreSQL database for analysis.
 
