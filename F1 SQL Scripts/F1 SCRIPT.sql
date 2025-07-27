@@ -1,15 +1,3 @@
-ALTER TABLE driver_standings_all_years_stage RENAME TO  driver_standings_all_years;
-ALTER TABLE constructors_standings_all_years_stage RENAME TO constructors_standings_all_years;
-ALTER TABLE drivers_stage  RENAME TO  drivers;
-ALTER TABLE teams_stage RENAME TO  teams;
-ALTER TABLE races_stage RENAME TO  races;
-ALTER TABLE seasons_stage RENAME TO  seasons;
-
-
-select *
-from constructors_standings_all_years;
-
-
 --PROD SCHEMA CREATION FOR DATA; PUBLIC SCHEMA WILL BE USED FOR STAGING
 CREATE SCHEMA IF NOT EXISTS PROD;
 
@@ -73,8 +61,6 @@ FROM PUBLIC.SEASONS;
 SELECT *
 FROM PROD.SEASONS;
 
-select *
-from public.races;
 
 --RACES BY SEASON TABLE CREATION
 
@@ -86,13 +72,14 @@ SELECT
 	"raceName" as race_name,
 	"laps" as laps,
 	"round" as round,
+	"circuit.corners" as corners,
 	"circuit.circuitId" as circuit_id,
 	"circuit.circuitName" as circuit_name,
 	CAST("schedule.race.date" AS DATE) AS scheduled_race_date,
 	CAST("schedule.race.time" AS TIME) AS scheduled_race_time,
 	CAST("schedule.qualy.date" AS DATE) AS scheduled_qualy_date,
 	CAST("schedule.qualy.time" AS TIME) AS scheduled_qualy_time,
-	"fast_lap.fast_lap" as fast_lap,
+	"fast_lap.fast_lap" as fastest_lap,
 	"fast_lap.fast_lap_driver_id" as fastest_lap_driver_id,
 	"winner.driverId" as race_winner_id,
 	CONCAT("winner.name", ' ', "winner.surname") as race_winner_name,
@@ -102,6 +89,8 @@ FROM PUBLIC.races;
 	
 SELECT *
 FROM PROD.RACES;
+
+
 
 
 -- CREATING TEAMS AND DRIVERS TABLES
@@ -185,12 +174,64 @@ left join team_last_appearance tla on t."teamId"  = tla.teamId
 
 
 SELECT *
-FROM PROD.TEAMS
-where team_status = 'Active';
+FROM PROD.TEAMS;
+
+
+
+
+-- DROP TABLE IF EXISTS PROD.CIRCUITS
+
+CREATE TABLE IF NOT EXISTS PROD.CIRCUITS AS 
+WITH circuit_appearance_rank as (
+SELECT 
+	circuit_id,
+	circuit_name,
+	season,
+	RANK() OVER(Partition by circuit_id order by season desc) as season_rank
+FROM PROD.RACES r
+LEFT JOIN PROD.SEASONS s on r.championship_id = s.championship_id
+and season <> EXTRACT('Year' FROM CURRENT_DATE)
+),
+circuit_first_appearance AS (
+SELECT
+	circuit_id,
+	max(season)
+from circuit_appearance_rank
+GROUP BY circuit_id
+),
+current_season_circuits as (
+SELECT circuit_id
+FROM PROD.RACES r
+LEFT JOIN PROD.SEASONS s on r.championship_id = s.championship_id
+WHERE season = EXTRACT('Year' FROM CURRENT_DATE)),
+circuit_last_appearance as (
+SELECT car.*
+from circuit_appearance_rank car
+LEFT JOIN current_season_circuits csc on car.circuit_id = csc.circuit_id
+WHERE car.season_rank = 1
+)
+SELECT 
+"circuitId" as circuit_id,
+"circuitName" as circuit_name,
+"country" as circuit_country,
+"city" as circuit_city,
+"lapRecord" as circuit_laprecord,
+CASE WHEN "firstParticipationYear" is null THEN (SELECT season from circuit_first_appearance cfa where c."circuitId" = cfa.circuit_id )
+ELSE "firstParticipationYear" END AS first_participation_year,
+"season" as last_appearance_year,
+"numberOfCorners" as circuit_corners,
+"fastestLapDriverId" as fastest_lap_driver_id,
+"fastestLapTeamId" as fatest_lap_team_id,
+"fastestLapYear" as fatest_lap_year
+FROM PUBLIC.CIRCUITS c
+JOIN  circuit_last_appearance cla on c."circuitId" = cla.circuit_id;
 
 
 select *
-from prod.races
+from PROD.CIRCUITS;
+
+select *
+from PROD.race_results;
 
 
 
