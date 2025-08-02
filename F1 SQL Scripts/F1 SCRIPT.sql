@@ -231,21 +231,85 @@ select *
 from PROD.CIRCUITS;
 
 select *
-from PROD.race_results;
+from public.race_results;
+
+-- DROP TABLE IF EXISTS PROD.CURRENT_SEASON_RACE_RESULTS
 
 
 
+CREATE TABLE IF NOT EXISTS PROD.CURRENT_SEASON_RACE_RESULTS(
+	round 	text,
+	date 	date,
+	race_time_race time,
+	race_id varchar(255),
+	race_name text,
+	circuit_id varchar(255),
+	circuit_name text,
+	circuit_length text,
+	circuit_corners smallint,
+	season int,
+	driver_position text,
+	points smallint,
+	grid_position text,
+	driver_race_time text,
+	driver_fast_lap time,
+	retired text,
+	driver_id varchar(255),
+	driver_number smallint,
+	driver_name text,
+	team_id text,
+	team_name text
+);
+
+INSERT INTO PROD.CURRENT_SEASON_RACE_RESULTS (
+    round,
+    date,
+    race_time_race,
+    race_id,
+    race_name,
+    circuit_id,
+    circuit_name,
+    circuit_length,
+    circuit_corners,
+    season,
+    driver_position,
+    points,
+    grid_position,
+    driver_race_time,
+    driver_fast_lap,
+    retired,
+    driver_id,
+    driver_number,
+    driver_name,
+    team_id,
+    team_name
+)
+SELECT 
+    round, 
+    CAST(date AS date),
+    CAST(race_time_race AS time), 
+    "raceId",
+    "raceName", 
+    "circuit.circuitId",
+    "circuit.circuitName",
+    "circuit.circuitLength",
+    "circuit.corners",
+    season,   -- You used bigint before, but your table column is 'season date'
+    position, 
+    points, 
+    grid,
+    race_time_driver,
+    cast("fastLap" as time),
+    "retired",
+    "driver_driverId", 
+    CAST("driver_number" AS smallint),  -- Optional, if driver_number is stored as text
+    "driver_name",
+    "team_teamId",
+    "team_teamName"
+FROM PUBLIC.RACE_RESULTS;
 
 
 
-	
+select *
+from PROD.CURRENT_SEASON_RACE_RESULTS
 
-
-
-
-
-
-
-
-
- 
