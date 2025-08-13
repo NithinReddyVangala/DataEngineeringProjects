@@ -313,3 +313,93 @@ FROM PUBLIC.RACE_RESULTS;
 select *
 from PROD.CURRENT_SEASON_RACE_RESULTS
 
+SELECT *
+FROM PROD.drivers_standings
+
+WITH drivers_season_points as 
+(
+select season,driver_id, driver_number, sum(points) as season_points,
+ COUNT(CASE WHEN driver_position = '1' THEN 1 END) as season_wins,
+ COUNT(CASE WHEN driver_position in ('1', '2', '3') THEN 1 END) as season_podiums
+from PROD.CURRENT_SEASON_RACE_RESULTS
+GROUP BY season, driver_id, driver_number
+order by sum(points) desc
+),
+driver_season_positions as (
+select season,driver_id, driver_number, season_points, season_wins, season_podiums,
+ ROW_NUMBER() OVER(ORDER BY season_points desc, season_wins desc) as position
+from drivers_season_points
+)
+UPDATE prod.drivers_standings as ds
+SET 
+	points = dsp.season_points,
+	wins = dsp.season_wins,
+	position = dsp.position
+from  driver_season_positions dsp
+where ds.season = dsp.season and ds.driver_id = dsp.driver_id and ds.driver_number = dsp.driver_number
+
+SELECT *
+FROM PROD.drivers_standings
+order by season desc, points desc;
+
+
+
+select *
+from PROD.CURRENT_SEASON_RACE_RESULTS
+
+SELECT *
+FROM PROD.constructors_standings
+
+--Updating Team standing for current year
+
+WITH team_season_points as 
+(
+select season,team_id, sum(points) as season_points,
+ COUNT(CASE WHEN driver_position = '1' THEN 1 END) as season_wins
+from PROD.CURRENT_SEASON_RACE_RESULTS
+GROUP BY season, team_id
+order by sum(points) desc
+),
+team_season_positions as (
+select season,team_id,season_points, season_wins,
+ ROW_NUMBER() OVER(ORDER BY season_points desc, season_wins desc) as position
+from team_season_points
+)
+UPDATE prod.constructors_standings as cs
+SET 
+	points = tsp.season_points,
+	wins = tsp.season_wins,
+	position = tsp.position
+from team_season_positions tsp
+where cs.season = tsp.season and cs.team_id = tsp.team_id 
+
+SELECT *
+FROM PROD.constructors_standings
+order by season desc, points desc;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
