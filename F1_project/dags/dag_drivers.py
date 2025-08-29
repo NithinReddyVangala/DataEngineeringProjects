@@ -3,7 +3,6 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pandas as pd
 from pandas import json_normalize
 import requests
-from sqlalchemy import create_engine
 from datetime import datetime
 from dags.dag_seasons import default_args,POSTGRES_CONN_ID, API_URL, championship_years
 import time
@@ -14,12 +13,6 @@ API_URL = 'https://f1api.dev/api'  # full URL
 pg_hook = PostgresHook(POSTGRES_CONN_ID)
 #engine
 engine = pg_hook.get_sqlalchemy_engine()
-
-
-
-default_args = {
-
-}
 
 @dag(
     dag_id = 'dag_drivers',
