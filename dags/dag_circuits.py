@@ -9,14 +9,13 @@ from sqlalchemy import create_engine
 
 POSTGRES_CONN_ID = 'formula1_astro'
 API_URL = 'https://f1api.dev/api'
-pg_hook = PostgresHook(POSTGRES_CONN_ID)
-# Instead of manually building the engine, using Airflow to generate the engine
-engine = pg_hook.get_sqlalchemy_engine()
+
 
 @dag(
     dag_id = "dag_circuits",
     start_date = datetime(2025,1,1),
-    schedule = "@daily",
+    # schedule = "@daily",
+    schedule = '10 9 */2 * *',
     catchup = False,
     tags = ['f1', 'all_seasons_circuits_data', 'circuits_of_F1']
 )
@@ -24,6 +23,9 @@ engine = pg_hook.get_sqlalchemy_engine()
 def circuits_pipeline():
     @task()
     def get_and_post_circuits():
+        pg_hook = PostgresHook(POSTGRES_CONN_ID)
+        # Instead of manually building the engine, using Airflow to generate the engine
+        engine = pg_hook.get_sqlalchemy_engine()
         url = f'{API_URL}/circuits?limit=10000'
         # print(url)
         response = requests.get(url)

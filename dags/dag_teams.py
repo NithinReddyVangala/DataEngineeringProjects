@@ -11,7 +11,8 @@ from dags.dag_seasons import POSTGRES_CONN_ID, API_URL
 @dag(
     dag_id = "dag_teams",
     start_date = datetime(2025,1,1),
-    schedule = "@daily",
+    # schedule = "@daily",
+    schedule = '15 9 */2 * *',
     catchup = False,
     tags = ['F1', 'F1_teams', 'teams_historical_data']
 )
@@ -29,6 +30,7 @@ def teams_pipeline():
             print(f"Successful retrival of data. URL response: {response.status_code}")
             data = response.json()
             teams_data = pd.json_normalize(data['teams'])
+            teams_data['lastmodifieddatetime'] = datetime.now()
             
             #inserting data into postgres DB using PostgresHook and sqlalchemy
             pg_hook = PostgresHook(POSTGRES_CONN_ID)

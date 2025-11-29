@@ -3,34 +3,29 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pandas as pd
 from pandas import json_normalize
 import requests
-from sqlalchemy import create_engine
 from datetime import datetime
 from dags.dag_seasons import default_args,POSTGRES_CONN_ID, API_URL, championship_years
 import time
 
 POSTGRES_CONN_ID = 'formula1_astro'
 API_URL = 'https://f1api.dev/api'  # full URL
-#creating the hook
-pg_hook = PostgresHook(POSTGRES_CONN_ID)
-#engine
-engine = pg_hook.get_sqlalchemy_engine()
 
-
-
-default_args = {
-
-}
 
 @dag(
     dag_id = 'dag_drivers',
     start_date = datetime(2025,1,1),
-    schedule = '@weekly',
+    # schedule = '@weekly',
+    schedule = '30 9 */2 * *',
     catchup = False,
     tags = ['F1', 'drivers', 'f1_drivers','drivers_historical_data']
 ) 
 
 
 def drivers_pipeline():
+    #creating the hook
+    pg_hook = PostgresHook(POSTGRES_CONN_ID)
+    #engine
+    engine = pg_hook.get_sqlalchemy_engine()
     @task()
     def fetch_seasons():
         """Fetching all the seasons for POC will do only latest year"""
@@ -43,8 +38,10 @@ def drivers_pipeline():
     
     @task()
     def get_and_push_drivers(seasons_list):
+        
         drivers_by_seasons_dict = {}
         for year in seasons_list:
+            
             url = f'{API_URL}/{year}/drivers?limit=10000'
             print(url)
             response = requests.get(url)
@@ -57,6 +54,7 @@ def drivers_pipeline():
                 season_drivers = pd.json_normalize(data['drivers'])
                 season_drivers['championshipId'] = data.get('championshipId')
                 season_drivers['season'] = data.get('season')
+                season_drivers['lastmodifieddatetime'] = datetime.now()
                 #appending all the a single dictionary variable
                 drivers_by_seasons_dict[year] = season_drivers
             else:

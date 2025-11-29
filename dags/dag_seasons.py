@@ -10,22 +10,22 @@ from sqlalchemy import create_engine
 
 POSTGRES_CONN_ID = 'formula1_astro'
 API_URL = 'https://f1api.dev/api'  # full URL
-#creating the hook
-pg_hook = PostgresHook(POSTGRES_CONN_ID)
-engine = pg_hook.get_sqlalchemy_engine()
+
 
 
 championship_years = {}
 
 default_args = {
     'start_date' : datetime(2025,1,1),
-    'schedule' : '@daily',
+    # 'schedule' : '@daily',
+
     'catchup' : False
 }
 
 @dag(
     dag_id = 'dag_seasons',
     default_args = default_args,
+    schedule = '0 9 */2 * *',
     tags=['f1', 'seasons', 'api']
 )
 
@@ -34,6 +34,9 @@ default_args = {
 def seasons_pipeline():   
     @task(task_id= 'seasons_dag_task')
     def get_and_post_seasons():
+        #creating the hook
+        pg_hook = PostgresHook(POSTGRES_CONN_ID)
+        engine = pg_hook.get_sqlalchemy_engine()
         ''' Extract Seasons data'''
         #Build the API endpoint
         # URL = 'https://f1api.dev/api'

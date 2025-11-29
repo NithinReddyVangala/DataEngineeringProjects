@@ -12,19 +12,21 @@ POSTGRES_CONN_ID = 'formula1_astro'
 API_URL = 'https://f1api.dev/api'
 
 #creating Hook
-pg_Hook = PostgresHook(POSTGRES_CONN_ID)
-engine = pg_Hook.get_sqlalchemy_engine()
+
 
 
 @dag(
     dag_id = 'dag_constructors',
     start_date=datetime(2025,1,1),
-    schedule= '@weekly',
+    # schedule= '@weekly',
+    schedule= '20 10 */2 * *',
     catchup= False,
     tags = ['F1','constructors', 'F1_Constructors', 'history', 'F1_Constructors_History']
 )
 
 def constructors_pipeline():
+    pg_Hook = PostgresHook(POSTGRES_CONN_ID)
+    engine = pg_Hook.get_sqlalchemy_engine()
     @task()
     def fetch_seasons():
         """Fetching all the seasons for POC will do only latest year"""
@@ -37,13 +39,14 @@ def constructors_pipeline():
     @task()
     def get_and_push_constructors(seasons_list):
         standings_by_years = {}
+
         for year in seasons_list:
             #if year == 2025:
             #key = 'drivers-championship' if drivers_or_teams == 'drivers' else 'constructors-championship'
             standing_url = f"{API_URL}/{year}/constructors-championship?limit={datetime.now().year}"
             print(f'{standing_url}')
             #sending request through API
-            response = requests.get(standing_url)
+            response = requests.get(standing_url, timeout = 30)
             time.sleep(3)
 
             if response.status_code == 200:
@@ -54,10 +57,11 @@ def constructors_pipeline():
                 standings_by_year = pd.json_normalize(data['constructors_championship'], sep = '_')
                 standings_by_year['season'] = data.get('season', year)
                 standings_by_year['championshipId'] = data.get('championshipId')
+                standings_by_year['lastmodifieddatetime'] = datetime.now()
                 standings_by_years[year] = standings_by_year
 
-
-                time.sleep(3)
+                
+                time.sleep(0.5)
             else:
                 print(f"Failed to retrieve the team information {response.status_code}")
                 time.sleep(1.5)
